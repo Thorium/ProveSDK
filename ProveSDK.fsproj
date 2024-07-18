@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFrameworks>netstandard2.0;netstandard2.1</TargetFrameworks>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <PackageId>ProveSDK</PackageId>
+    <Version>1.0</Version>
+    <Authors>Tuomas Hietanen, Timothé Larivière</Authors>
+    <Company>Welendus</Company>
+    <PackageDescription>Unofficial Prove .NET Client</PackageDescription>
+    <RepositoryUrl>https://github.com/thorium/ProveSDK</RepositoryUrl>
+    <PackageTags>Prove identity verification trust score sms</PackageTags>
+    <IsPackable>true</IsPackable>
+    <IsTestProject>false</IsTestProject>
+    <PackageLicenseExpression>Apache-2.0</PackageLicenseExpression>
+    <PublishRepositoryUrl>true</PublishRepositoryUrl>
+    <EmbedUntrackedSources>true</EmbedUntrackedSources>
+    <PackageReadmeFile>Readme.md</PackageReadmeFile>
+  </PropertyGroup>
+  <ItemGroup>
+    <None Include="Readme.md" Pack="true" PackagePath="\" />
+    <Compile Include="Common.fs" />
+    <Compile Include="Identity.fs" />
+    <Compile Include="TrustScore.fs" />
+    <Compile Include="SmsDelivery.fs" />
+    <Compile Include="InstantLink.fs" />
+  </ItemGroup>
+  <ItemGroup />
+  <ItemGroup>
+    <PackageReference Include="FSharp.Data" Version="6.4.0" />
+    <PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
+    <PackageReference Update="FSharp.Core" Version="8.0.301" />
+  </ItemGroup>
+</Project>
