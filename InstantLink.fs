@@ -138,7 +138,8 @@ module InstantLink =
     type InstantLinkResult =
         { LinkClicked: bool
           PhoneMatch: PhoneMatch
-          IpAddressMatch: bool }
+          IpAddressMatch: bool
+          PhoneNumber: string }
 
     let generate (license: License) (redirectUrl: string) (ipAddress: string option) (phoneNumber: string) (sessionId: string) =
         async {
@@ -203,5 +204,7 @@ module InstantLink =
                                 | "true" -> PhoneMatch.Yes
                                 | "false" -> PhoneMatch.No
                                 | _ -> PhoneMatch.Indeterminate
-                              IpAddressMatch = data.Response.IpAddressMatch }
+                              IpAddressMatch = data.Response.IpAddressMatch
+                              PhoneNumber = data.Response.PhoneNumber
+                              }
         }

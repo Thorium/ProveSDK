@@ -1,0 +1,25 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.10.35013.160
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{6EC3EE1D-3C4E-46DD-8F32-0CC8E7565705}") = "ProveSDK", "ProveSDK.fsproj", "{37665DF9-007C-4656-BED3-07EED5981E6B}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{37665DF9-007C-4656-BED3-07EED5981E6B}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{37665DF9-007C-4656-BED3-07EED5981E6B}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{37665DF9-007C-4656-BED3-07EED5981E6B}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{37665DF9-007C-4656-BED3-07EED5981E6B}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {99080005-9D4E-42E9-87C1-FBBBF4043D07}
+	EndGlobalSection
+EndGlobal
