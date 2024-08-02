@@ -8,6 +8,7 @@ open Newtonsoft.Json.Serialization
 open System.Net.Http
 open Microsoft.FSharp.Reflection
 open Newtonsoft.Json
+open FSharp.Data.JsonProvider
 
 type OptionConverter() =
     inherit JsonConverter()
@@ -162,7 +163,7 @@ module internal ServiceCall =
 
     open System.IO
 
-    type ProveAuthResponse = FSharp.Data.JsonProvider<"""{
+    type internal ProveAuthResponse = FSharp.Data.JsonProvider<"""{
         "access_token": "123hbGciOi...vB_PmVfkZQ",
         "expires_in": 7200,
         "id_token": "123hb...5cKTfbLbg",
@@ -238,8 +239,8 @@ module internal ServiceCall =
             let! res = makePostRequestWithHeaders PostRequestTypes.ApplicationUrlForm (license.Environment.AsLegacyApiUrl() + "/token") bodyPart []
             match res with
             | r, None ->
-                let tokenResp = ProveAuthResponse.Parse r
-                return tokenResp.AccessToken
+                let tokenResp = ProveAuthResponse.Load (Serializer.Deserialize r)
+                return tokenResp.AccessToken, ""
             | err, Some r ->
-                return ""
+                return "", r.Message
         }

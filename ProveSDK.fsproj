@@ -4,7 +4,7 @@
     <TargetFrameworks>netstandard2.0;netstandard2.1</TargetFrameworks>
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
     <PackageId>ProveSDK</PackageId>
-    <Version>1.0.1</Version>
+    <Version>1.0.2</Version>
     <Authors>Tuomas Hietanen, Timothé Larivière</Authors>
     <Company>Welendus</Company>
     <PackageDescription>Unofficial Prove .NET Client</PackageDescription>
@@ -25,9 +25,9 @@
     <Compile Include="SmsDelivery.fs" />
     <Compile Include="InstantLink.fs" />
   </ItemGroup>
-  <ItemGroup />
   <ItemGroup>
     <PackageReference Include="FSharp.Data" Version="6.4.0" />
+    <PackageReference Include="FSharp.Data.JsonProvider.Serializer" Version="1.0.2" />
     <PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
     <PackageReference Update="FSharp.Core" Version="8.0.301" />
   </ItemGroup>
