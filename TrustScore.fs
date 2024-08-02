@@ -62,7 +62,7 @@ module TrustScore =
 
 ]""", SampleIsList=true>
 
-    /// Calls TrustScore. Returns a score, the number from 0-1000 or possible error.
+    /// Calls TrustScore. Returns a score, the number from 0-1000, and full response as string (also with possible error)
     let callProveTrustScore license (phonenr:string) =
         async {
             let! auth, err = ServiceCall.proveAuth license
@@ -77,11 +77,12 @@ module TrustScore =
             let req = ProveTrustscoreRequest.Root(Guid.NewGuid().ToString(), (Some phone), None, false, None).JsonValue |> Serializer.Serialize
             let! res = ServiceCall.makePostRequestWithHeaders ServiceCall.PostRequestTypes.ApplicationJson (license.Environment.AsLegacyApiUrl() + "/trust/v2") req ["Authorization", "Bearer " + auth; "Consent-Status", "optedIn"]
             match res with
-            | r, None ->
-                let parsedResp = ProveTrustscoreResponse.Load (Serializer.Deserialize r)
+            | fullResponse, None ->
+                let parsedResp = ProveTrustscoreResponse.Load (Serializer.Deserialize fullResponse)
+                let timestamped = ServiceCall.addTimeStamp fullResponse
                 match parsedResp.Response with
-                | Some response -> return ValueSome(response.TrustScore), r
-                | None -> return ValueNone, r
+                | Some response -> return ValueSome(response.TrustScore), timestamped
+                | None -> return ValueNone, timestamped
             | err, Some r ->
                 if err.ToString().Contains "phoneNumber invalid" then
                     return (ValueSome 0), err

@@ -4,7 +4,7 @@
     <TargetFrameworks>netstandard2.0;netstandard2.1</TargetFrameworks>
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
     <PackageId>ProveSDK</PackageId>
-    <Version>1.0.3</Version>
+    <Version>1.0.4</Version>
     <Authors>Tuomas Hietanen, Timothé Larivière</Authors>
     <Company>Welendus</Company>
     <PackageDescription>Unofficial Prove .NET Client</PackageDescription>

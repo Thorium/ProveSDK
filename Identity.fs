@@ -176,7 +176,7 @@ module Identity =
 ]""", SampleIsList=true>
 
     /// Call Prove Verify.
-    /// Returns: Is call done, result, error
+    /// Returns: Is call done, strongly typed response (if successful), and full response as string
     let callProveVerify license (phonenr:string) firstname lastname city zipCode stateCode (dateOfBirth:DateTime option) (ssn:string option) =
         async {
             let! auth, err = ServiceCall.proveAuth license
@@ -194,11 +194,12 @@ module Identity =
                         ssn |> Option.map(fun ssnNr -> ssnNr.Replace(" ", "").Replace("-", ""))).JsonValue |> Serializer.Serialize
             let! res = ServiceCall.makePostRequestWithHeaders ServiceCall.PostRequestTypes.ApplicationJson (license.Environment.AsLegacyApiUrl() + "/identity/verify/v2") req ["Authorization", "Bearer " + auth; "Consent-Status", "optedIn"] // optedIn / optedOut / notCollected / unknown 
             match res with
-            | r, None ->
-                let parsedResp = ProveVerifyResponse.Load (Serializer.Deserialize r)
+            | fullResponse, None ->
+                let parsedResp = ProveVerifyResponse.Load (Serializer.Deserialize fullResponse)
+                let timestamped = ServiceCall.addTimeStamp fullResponse
                 match parsedResp.Response with
-                | Some response -> return true, Some response, r
-                | None -> return false, None, r
+                | Some response -> return true, Some response, timestamped
+                | None -> return false, None, timestamped
             | err, Some r ->
                 if err.ToString().Contains "phoneNumber invalid" then
                     return true, None, err
@@ -250,6 +251,7 @@ module Prefill =
     },{"requestId":"1230544e-0f2d-1230-8149-123658bad63d","status":1000,"description":"Parameter is invalid.","additionalInfo":"dob invalid.","timestamp": "2024-06-08T00:54:12.911"}]""", SampleIsList=true>
 
     /// Calls Pre-Fill
+    /// Returns: Strongly typed response (if successful), and full response as string
     let provePrefillIdentity license (phonenr:string) (dateOfBirth:DateTime) (ssn:string option) =
         async {
 
@@ -266,14 +268,15 @@ module Prefill =
             let req = ProveIdentityRequest.Root(Guid.NewGuid().ToString(), phone, (Some (dateOfBirth.ToString("yyyy-MM-dd"))), ssnnr).JsonValue |> Serializer.Serialize
             let! res = ServiceCall.makePostRequestWithHeaders ServiceCall.PostRequestTypes.ApplicationJson (license.Environment.AsLegacyApiUrl() + "/identity/v2") req ["Authorization", "Bearer " + auth; "Consent-Status", "optedIn"]
             match res with
-            | r, None ->
+            | fullResponse, None ->
                 let parsedResp =
                     try
-                        let resp = ProveIdentityResponse.Load (Serializer.Deserialize r)
+                        let resp = ProveIdentityResponse.Load (Serializer.Deserialize fullResponse)
+                        let timestamped = ServiceCall.addTimeStamp fullResponse
                         if resp.Status <> 0 && (resp.Status < 1000 || resp.Status >= 2000) then
-                            None, r
+                            None, timestamped
                         else
-                            Some resp, ""
+                            Some resp, timestamped
                     with
                     | e ->
                         None, (e.ToString())
