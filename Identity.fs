@@ -177,6 +177,10 @@ module Identity =
 
     type ProveVerifyResponseRoot = ProveVerifyResponse.Root
 
+    /// Loads call verify response from Json
+    let loadResponseFromString json =
+         ProveVerifyResponse.Load (Serializer.Deserialize json) : ProveVerifyResponseRoot
+
     /// Call Prove Verify.
     /// Returns: Is call done, strongly typed response (if successful), and full response as string
     let callProveVerify license (phonenr:string) firstname lastname city zipCode stateCode (dateOfBirth:DateTime option) (ssn:string option) =
@@ -197,7 +201,7 @@ module Identity =
             let! res = ServiceCall.makePostRequestWithHeaders ServiceCall.PostRequestTypes.ApplicationJson (license.Environment.AsLegacyApiUrl() + "/identity/verify/v2") req ["Authorization", "Bearer " + auth; "Consent-Status", "optedIn"] // optedIn / optedOut / notCollected / unknown 
             match res with
             | fullResponse, None ->
-                let parsedResp = ProveVerifyResponse.Load (Serializer.Deserialize fullResponse) : ProveVerifyResponseRoot
+                let parsedResp = loadResponseFromString fullResponse : ProveVerifyResponseRoot
                 let timestamped = ServiceCall.addTimeStamp fullResponse
                 match parsedResp.Response with
                 | Some response -> return true, Some response, timestamped
@@ -253,6 +257,11 @@ module Prefill =
     },{"requestId":"1230544e-0f2d-1230-8149-123658bad63d","status":1000,"description":"Parameter is invalid.","additionalInfo":"dob invalid.","timestamp": "2024-06-08T00:54:12.911"}]""", SampleIsList=true>
 
     type ProveIdentityResponseRoot = ProveIdentityResponse.Root
+
+    /// Loads call verify response from Json
+    let loadResponseFromString json =
+         ProveIdentityResponse.Load (Serializer.Deserialize json) : ProveIdentityResponseRoot
+
     /// Calls Pre-Fill
     /// Returns: Strongly typed response (if successful), and full response as string
     let provePrefillIdentity license (phonenr:string) (dateOfBirth:DateTime) (ssn:string option) =
@@ -274,7 +283,7 @@ module Prefill =
             | fullResponse, None ->
                 let parsedResp =
                     try
-                        let resp = ProveIdentityResponse.Load (Serializer.Deserialize fullResponse) : ProveIdentityResponseRoot
+                        let resp = loadResponseFromString fullResponse
                         let timestamped = ServiceCall.addTimeStamp fullResponse
                         if resp.Status <> 0 && (resp.Status < 1000 || resp.Status >= 2000) then
                             None, timestamped
