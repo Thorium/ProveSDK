@@ -24,7 +24,7 @@ module Identity =
         "postalCode": "93015x",
         "details": false}]""", SampleIsList=true>
 
-    type ProveVerifyResponse = FSharp.Data.JsonProvider<"""[{
+    type internal ProveVerifyResponse = FSharp.Data.JsonProvider<"""[{
   "requestId": "1233-b0c4-90e0-9123-11e10800200c9123",
   "response": {
     "troubleshootingId": "1234567123",
@@ -175,6 +175,8 @@ module Identity =
 {    "requestId": "1231d473-f80b-40b1-93f4-123807d93123",    "status": 0,    "description": "Success.",    "response": {      "transactionId": "12336852123",      "payfoneAlias": "123456789ABCXYZC4E9F512309B957C8D0MEK123J9C9X2B64D173C627C215123AA25E251A88A5123F6G358A77123CE2C8D681239853028EA6FD01234",      "phoneNumber": "12335135123",      "lineType": "Mobile",      "carrier": "Verizon",      "countryCode": "US",      "verified": true,      "cipConfidence": "low",      "name": {        "firstName": 27,        "lastName": 100,        "nameScore": 71      },      "address": {        "city": true,        "postalCode": true,        "distance": 5.37,        "addressScore": 16      },      "identifiers": {        "ssn": false,        "dob": false      },      "reasonCodes": [        "OL",        "P5",        "RM",        "UV"      ]    },"timestamp": "2024-06-08T00:54:12.911"}
 ]""", SampleIsList=true>
 
+    type ProveVerifyResponseRoot = ProveVerifyResponse.Root
+
     /// Call Prove Verify.
     /// Returns: Is call done, strongly typed response (if successful), and full response as string
     let callProveVerify license (phonenr:string) firstname lastname city zipCode stateCode (dateOfBirth:DateTime option) (ssn:string option) =
@@ -195,7 +197,7 @@ module Identity =
             let! res = ServiceCall.makePostRequestWithHeaders ServiceCall.PostRequestTypes.ApplicationJson (license.Environment.AsLegacyApiUrl() + "/identity/verify/v2") req ["Authorization", "Bearer " + auth; "Consent-Status", "optedIn"] // optedIn / optedOut / notCollected / unknown 
             match res with
             | fullResponse, None ->
-                let parsedResp = ProveVerifyResponse.Load (Serializer.Deserialize fullResponse)
+                let parsedResp = ProveVerifyResponse.Load (Serializer.Deserialize fullResponse) : ProveVerifyResponseRoot
                 let timestamped = ServiceCall.addTimeStamp fullResponse
                 match parsedResp.Response with
                 | Some response -> return true, Some response, timestamped
@@ -220,7 +222,7 @@ module Prefill =
         "ssn":"1234-56-7890"
     }]""", SampleIsList=true> //"last4":"1234"
 
-    type ProveIdentityResponse = FSharp.Data.JsonProvider< """[{
+    type internal ProveIdentityResponse = FSharp.Data.JsonProvider< """[{
       "requestId": "ND-1234563341",
       "status": 0,
       "description": "Success.",
@@ -250,6 +252,7 @@ module Prefill =
       }
     },{"requestId":"1230544e-0f2d-1230-8149-123658bad63d","status":1000,"description":"Parameter is invalid.","additionalInfo":"dob invalid.","timestamp": "2024-06-08T00:54:12.911"}]""", SampleIsList=true>
 
+    type ProveIdentityResponseRoot = ProveIdentityResponse.Root
     /// Calls Pre-Fill
     /// Returns: Strongly typed response (if successful), and full response as string
     let provePrefillIdentity license (phonenr:string) (dateOfBirth:DateTime) (ssn:string option) =
@@ -271,7 +274,7 @@ module Prefill =
             | fullResponse, None ->
                 let parsedResp =
                     try
-                        let resp = ProveIdentityResponse.Load (Serializer.Deserialize fullResponse)
+                        let resp = ProveIdentityResponse.Load (Serializer.Deserialize fullResponse) : ProveIdentityResponseRoot
                         let timestamped = ServiceCall.addTimeStamp fullResponse
                         if resp.Status <> 0 && (resp.Status < 1000 || resp.Status >= 2000) then
                             None, timestamped
