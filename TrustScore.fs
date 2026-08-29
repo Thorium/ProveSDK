@@ -75,13 +75,12 @@ module TrustScore =
                 return (ValueSome 0), $"phoneNumber {phonenr} was not in correct format"
             else
             let req = ProveTrustscoreRequest.Root(Guid.NewGuid().ToString(), (Some phone), None, false, None).JsonValue |> Serializer.Serialize
-            let! res = ServiceCall.makePostRequestWithHeaders ServiceCall.PostRequestTypes.ApplicationJson (license.Environment.AsLegacyApiUrl() + "/trust/v2") req ["Authorization", "Bearer " + auth; "Consent-Status", "optedIn"]
-            match res with
+            match! ServiceCall.makePostRequestWithHeaders ServiceCall.PostRequestTypes.ApplicationJson (license.Environment.AsLegacyApiUrl() + "/trust/v2") req ["Authorization", "Bearer " + auth; "Consent-Status", "optedIn"] with
             | fullResponse, None ->
                 let parsedResp = ProveTrustscoreResponse.Load (Serializer.Deserialize fullResponse)
                 let timestamped = ServiceCall.addTimeStamp fullResponse
                 match parsedResp.Response with
-                | Some response -> return ValueSome(response.TrustScore), timestamped
+                | Some response -> return ValueSome response.TrustScore, timestamped
                 | None -> return ValueNone, timestamped
             | err, Some r ->
                 if err.ToString().Contains "phoneNumber invalid" then

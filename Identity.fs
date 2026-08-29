@@ -196,7 +196,7 @@ module Identity =
             else
 
             let req = ProveVerifyRequest.Root(Guid.NewGuid().ToString(), phone, firstname, lastname, None, city, Some true,
-                        dateOfBirth |> Option.map(fun dob -> dob.ToString("yyyy-MM-dd")), stateCode, zipCode, None,
+                        dateOfBirth |> Option.map(fun dob -> dob.ToString "yyyy-MM-dd"), stateCode, zipCode, None,
                         ssn |> Option.map(fun ssnNr -> ssnNr.Replace(" ", "").Replace("-", ""))).JsonValue |> Serializer.Serialize
             let! res = ServiceCall.makePostRequestWithHeaders ServiceCall.PostRequestTypes.ApplicationJson (license.Environment.AsLegacyApiUrl() + "/identity/verify/v2") req ["Authorization", "Bearer " + auth; "Consent-Status", "optedIn"] // optedIn / optedOut / notCollected / unknown 
             match res with
@@ -277,9 +277,8 @@ module Prefill =
                 return None, $"phoneNumber {phonenr} was not in correct format"
             else
             let ssnnr = ssn |> Option.map(fun s -> s.Replace(" ", "").Replace("-", "").Replace("(","").Replace(")","").Replace("+",""))
-            let req = ProveIdentityRequest.Root(Guid.NewGuid().ToString(), phone, (Some (dateOfBirth.ToString("yyyy-MM-dd"))), ssnnr).JsonValue |> Serializer.Serialize
-            let! res = ServiceCall.makePostRequestWithHeaders ServiceCall.PostRequestTypes.ApplicationJson (license.Environment.AsLegacyApiUrl() + "/identity/v2") req ["Authorization", "Bearer " + auth; "Consent-Status", "optedIn"]
-            match res with
+            let req = ProveIdentityRequest.Root(Guid.NewGuid().ToString(), phone, (Some (dateOfBirth.ToString "yyyy-MM-dd")), ssnnr).JsonValue |> Serializer.Serialize
+            match! ServiceCall.makePostRequestWithHeaders ServiceCall.PostRequestTypes.ApplicationJson (license.Environment.AsLegacyApiUrl() + "/identity/v2") req ["Authorization", "Bearer " + auth; "Consent-Status", "optedIn"] with
             | fullResponse, None ->
                 let parsedResp =
                     try

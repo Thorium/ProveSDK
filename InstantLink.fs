@@ -156,9 +156,8 @@ module InstantLink =
                   MobileNumber = phoneNumber
                   SubscriptionCustomerId = None }
 
-            let! response = execute license.Environment request
 
-            match response with
+            match! execute license.Environment request with
             | Error error ->
                 return Error (UnknownError error.Message)
 
@@ -184,9 +183,8 @@ module InstantLink =
                   SubClientId = license.SubClientId
                   VerificationFingerprint = verificationFingerprint }
 
-            let! response = execute license.Environment request
 
-            match response with
+            match! execute license.Environment request with
             | Error error ->
                 return Error (UnknownError error.Message)
 

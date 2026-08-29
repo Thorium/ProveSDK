@@ -28,7 +28,7 @@ type OptionConverter() =
     override x.ReadJson(reader, t, existingValue, serializer) =        
         let innerType = t.GetGenericArguments().[0]
         let innerType = 
-            if innerType.IsValueType then (typedefof<Nullable<_>>).MakeGenericType([|innerType|])
+            if innerType.IsValueType then (typedefof<Nullable<_>>).MakeGenericType [|innerType|]
             else innerType        
         let value = serializer.Deserialize(reader, innerType)
         let cases = FSharpType.GetUnionCases(t)
@@ -178,7 +178,7 @@ module internal ServiceCall =
     | ApplicationUrlForm
 
     /// Make a post-web-request, with custom headers
-    let makePostRequestWithHeaders (reqType: PostRequestTypes) (url : string) (requestBody : string) (headers) =
+    let makePostRequestWithHeaders (reqType: PostRequestTypes) (url : string) (requestBody : string) headers =
         let timeoutMs = 8000
         let timeout =  timeoutMs // Timeout has to be smaller than DTC timeout
         let reqtype =
@@ -208,7 +208,7 @@ module internal ServiceCall =
                         if response.IsSuccessStatusCode then
                             return rdata
                         else
-                            return raise (Exception(rdata))
+                            return failwith rdata
                     } |> Async.Catch
                 match res with
                 | Choice1Of2 x -> return x, None
@@ -232,8 +232,7 @@ module internal ServiceCall =
     let proveAuth (license:ServiceLicense) =
         async {
             let bodyPart = "username=" + license.ProveUser + "&password=" + license.ProvePassword + "&grant_type=password&client_id=" + license.ClientId
-            let! res = makePostRequestWithHeaders PostRequestTypes.ApplicationUrlForm (license.Environment.AsLegacyApiUrl() + "/token") bodyPart []
-            match res with
+            match! makePostRequestWithHeaders PostRequestTypes.ApplicationUrlForm (license.Environment.AsLegacyApiUrl() + "/token") bodyPart [] with
             | r, None ->
                 let tokenResp = ProveAuthResponse.Load (Serializer.Deserialize r)
                 return tokenResp.AccessToken, ""
