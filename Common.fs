@@ -219,7 +219,7 @@ module internal ServiceCall =
                     | :? WebException as wex when not(isNull wex.Response) ->
                         use stream = wex.Response.GetResponseStream()
                         use reader = new StreamReader(stream)
-                        let err = reader.ReadToEnd()
+                        let! err = reader.ReadToEndAsync() |> Async.AwaitTask
                         return err, Some e
                     | :? TimeoutException as e ->
                         return failwith(e.ToString())
