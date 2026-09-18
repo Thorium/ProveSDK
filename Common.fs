@@ -245,6 +245,6 @@ module internal ServiceCall =
             let jsonObj = Newtonsoft.Json.Linq.JObject.Parse str
             if not <| jsonObj.ContainsKey "timestamp" then
                 jsonObj.["timestamp"] <- Newtonsoft.Json.Linq.JValue(DateTime.UtcNow.ToString "yyyy-MM-ddTHH:mm:ss.fff")
-            jsonObj.ToString Newtonsoft.Json.Formatting.None
+            jsonObj.ToString Formatting.None
         with
         | _ -> str
