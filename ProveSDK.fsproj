@@ -9,7 +9,7 @@
     <Company>Welendus</Company>
     <PackageDescription>Unofficial Prove .NET Client</PackageDescription>
     <RepositoryUrl>https://github.com/thorium/ProveSDK</RepositoryUrl>
-    <PackageTags>Prove identity verification trust score sms</PackageTags>
+    <PackageTags>Prove identity identity-verification verification kyc trustscore trust-score sms fintech api-client dotnet fsharp csharp</PackageTags>
     <IsPackable>true</IsPackable>
     <IsTestProject>false</IsTestProject>
     <PackageLicenseExpression>Apache-2.0</PackageLicenseExpression>
