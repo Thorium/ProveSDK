@@ -120,9 +120,13 @@ module internal Request =
             ContractResolver = CamelCasePropertyNamesContractResolver()
         )
 
+    /// A client that doesn't follow redirects.
+    let internal newHttpClient () =
+        new HttpClient(new HttpClientHandler(AllowAutoRedirect = false))
+
     let execute<'Request, 'SuccessResponse, 'ErrorResponse> (url: string) (request: 'Request) =
         async {
-            use client = new HttpClient()
+            use client = newHttpClient ()
             client.DefaultRequestHeaders.Accept.Add(MediaTypeWithQualityHeaderValue("application/json"))
             
             let requestJson = JsonConvert.SerializeObject(
@@ -139,6 +143,8 @@ module internal Request =
             | HttpStatusCode.OK ->
                 let response = JsonConvert.DeserializeObject<'SuccessResponse>(responseJson)
                 return Ok response
+            | status when int status >= 300 && int status < 400 ->
+                return failwith $"Prove answered HTTP {int status}, a redirect, which isn't followed."
             | _ ->
                 let error = JsonConvert.DeserializeObject<'ErrorResponse>(responseJson)
                 return Error error
@@ -189,7 +195,7 @@ module internal ServiceCall =
             async {
                 let! res =
                     async{
-                        use client = new HttpClient()
+                        use client = Request.newHttpClient ()
                         client.Timeout <- TimeSpan.FromMilliseconds(float timeout)
 
                         use request = new HttpRequestMessage(HttpMethod.Post, url)
@@ -207,6 +213,8 @@ module internal ServiceCall =
 
                         if response.IsSuccessStatusCode then
                             return rdata
+                        elif int response.StatusCode >= 300 && int response.StatusCode < 400 then
+                            return failwith $"Prove answered HTTP {int response.StatusCode}, a redirect, which isn't followed."
                         else
                             return failwith rdata
                     } |> Async.Catch
