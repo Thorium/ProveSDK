@@ -144,7 +144,13 @@ module internal Request =
                 let response = JsonConvert.DeserializeObject<'SuccessResponse>(responseJson)
                 return Ok response
             | status when int status >= 300 && int status < 400 ->
-                return failwith $"Prove answered HTTP {int status}, a redirect, which isn't followed."
+                let redirect =
+                    {| Type = "redirect"
+                       FailureCode = int status
+                       ResponseCode = int status
+                       Message = $"Prove answered HTTP {int status}, a redirect, which isn't followed." |}
+
+                return Error(JsonConvert.DeserializeObject<'ErrorResponse>(JsonConvert.SerializeObject redirect))
             | _ ->
                 let error = JsonConvert.DeserializeObject<'ErrorResponse>(responseJson)
                 return Error error
