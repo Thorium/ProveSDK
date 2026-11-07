@@ -4,7 +4,26 @@
     <TargetFrameworks>netstandard2.0;net8.0;net10.0</TargetFrameworks>
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
     <PackageId>ProveSDK</PackageId>
-    <Version>1.0.12</Version>
+    <Version>1.1.0</Version>
+    <PackageReleaseNotes>v1.1.0:
+- BREAKING: callProveVerify, provePrefillIdentity and callProveTrustScore take a ConsentStatus, sent as Consent-Status, instead of always sending optedIn
+- BREAKING: Identity, Pre-Fill and TrustScore refuse a number with a leading or bracketed trunk 0, or a 00 prefix without a whole number after it, which was sent as a different number
+- BREAKING: callProveTrustScore gives ValueNone, not ValueSome 0, for a number refused here
+- FIXED: callProveVerify sent the state code as extendedAddress; it goes as region
+- FIXED: request bodies are UTF-8, so names outside ASCII reach Prove intact
+- FIXED: the sign-in form encodes its values
+- FIXED: a sign-in that fails or gives no token sends nothing further and returns the failure
+- FIXED: a non-200 answer without a readable error becomes an error naming the status
+- FIXED: dates of birth and added timestamps are Gregorian whatever the culture
+- FIXED: printing a license or an SMS or InstantLink request (%A, ToString) hides its keys and the person's number
+- FIXED: Readme examples match the API
+- FIXED: a UK number written +44 0 or 0044 0 drops the trunk 0; other country codes keep every digit
+- FIXED: a 2xx answer with an unreadable or empty body on any data call is that call's failure, with the status and the body's length and kind, not an exception or a success
+- FIXED: an answer of the typed InstantLink calls without a status is a failure, not a success with PhoneMatch = Yes
+- FIXED: callProveVerify fails on a response without a readable verified, instead of isDone = true and an exception in the caller
+- FIXED: failure text holds the status, the body's length and kind, and only named JSON error fields with digits and emails masked, never the body's text
+- FIXED: a refused number isn't echoed whole: the failure gives its digit count and at most its last two digits
+- BREAKING: Sms.send and InstantLink.generate refuse every number Identity refuses, such as 07700 900123</PackageReleaseNotes>
     <Authors>Tuomas Hietanen, Timothé Larivière</Authors>
     <Company>Welendus</Company>
     <PackageDescription>Unofficial Prove .NET Client</PackageDescription>
@@ -20,6 +39,7 @@
     <SymbolPackageFormat>snupkg</SymbolPackageFormat>
   </PropertyGroup>
   <ItemGroup>
+    <InternalsVisibleTo Include="ProveSDK.Tests" />
     <None Include="Readme.md" Pack="true" PackagePath="\" />
     <Compile Include="Common.fs" />
     <Compile Include="Identity.fs" />

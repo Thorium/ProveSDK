@@ -183,22 +183,36 @@ module Identity =
 
     /// Call Prove Verify.
     /// Returns: Is call done, strongly typed response (if successful), and full response as string
-    let callProveVerify license (phonenr:string) firstname lastname city zipCode stateCode (dateOfBirth:DateTime option) (ssn:string option) =
+    let callProveVerify license (consent: ConsentStatus) (phonenr:string) firstname lastname city zipCode stateCode (dateOfBirth:DateTime option) (ssn:string option) =
         async {
-            let! auth, err = ServiceCall.proveAuth license
-            if err <> "" then
+            match! ServiceCall.proveAuth license with
+            | Error err ->
                 return false, None, err
-            else
+            | Ok auth ->
 
-            let isOk, phone = phonenr.Replace(" ", "").Replace("-", "").Replace("+", "").Replace("(", "").Replace(")", "") |> Int64.TryParse
-            if not isOk then
-                return false, None, $"phoneNumber {phonenr} was not in correct format"
-            else
+            match ServiceCall.tryParsePhone phonenr with
+            | ValueNone ->
+                return false, None, ServiceCall.refusedNumber phonenr
+            | ValueSome phone ->
 
-            let req = ProveVerifyRequest.Root(Guid.NewGuid().ToString(), phone, firstname, lastname, None, city, Some true,
-                        dateOfBirth |> Option.map(fun dob -> dob.ToString "yyyy-MM-dd"), stateCode, zipCode, None,
-                        ssn |> Option.map(fun ssnNr -> ssnNr.Replace(" ", "").Replace("-", ""))).JsonValue |> Serializer.Serialize
-            let! res = ServiceCall.makePostRequestWithHeaders ServiceCall.PostRequestTypes.ApplicationJson (license.Environment.AsLegacyApiUrl() + "/identity/verify/v2") req ["Authorization", "Bearer " + auth; "Consent-Status", "optedIn"] // optedIn / optedOut / notCollected / unknown 
+            let req =
+                ProveVerifyRequest.Root(
+                    requestId = Guid.NewGuid().ToString(),
+                    phoneNumber = phone,
+                    firstName = firstname,
+                    lastName = lastname,
+                    address = None,
+                    city = city,
+                    details = Some true,
+                    dob = (dateOfBirth |> Option.map ServiceCall.isoDate),
+                    extendedAddress = None,
+                    postalCode = zipCode,
+                    region = stateCode,
+                    ssn = (ssn |> Option.map(fun ssnNr -> ssnNr.Replace(" ", "").Replace("-", ""))))
+                    .JsonValue
+                |> Serializer.Serialize
+            let readVerified (body: string) = (loadResponseFromString body).Response |> Option.iter (fun response -> response.Verified |> ignore)
+            let! res = ServiceCall.makePostRequestWithHeaders (ServiceCall.checkAnswer readVerified) ServiceCall.PostRequestTypes.ApplicationJson (license.Environment.AsLegacyApiUrl() + "/identity/verify/v2") req ["Authorization", "Bearer " + auth; "Consent-Status", consent.AsHeaderValue()]
             match res with
             | fullResponse, None ->
                 let parsedResp = loadResponseFromString fullResponse : ProveVerifyResponseRoot
@@ -206,6 +220,8 @@ module Identity =
                 match parsedResp.Response with
                 | Some response -> return true, Some response, timestamped
                 | None -> return false, None, timestamped
+            | err, Some(:? ServiceCall.UnreadableAnswer) ->
+                return false, None, err
             | err, Some r ->
                 if err.ToString().Contains "phoneNumber invalid" then
                     return true, None, err
@@ -264,34 +280,29 @@ module Prefill =
 
     /// Calls Pre-Fill
     /// Returns: Strongly typed response (if successful), and full response as string
-    let provePrefillIdentity license (phonenr:string) (dateOfBirth:DateTime) (ssn:string option) =
+    let provePrefillIdentity license (consent: ConsentStatus) (phonenr:string) (dateOfBirth:DateTime) (ssn:string option) =
         async {
 
-            let! auth, err = ServiceCall.proveAuth license
-            if err <> "" then
+            match! ServiceCall.proveAuth license with
+            | Error err ->
                 return None, err
-            else
+            | Ok auth ->
 
-            let isOk, phone = phonenr.Replace(" ", "").Replace("-", "").Replace("+", "").Replace("(", "").Replace(")", "") |> Int64.TryParse
-            if not isOk then
-                return None, $"phoneNumber {phonenr} was not in correct format"
-            else
+            match ServiceCall.tryParsePhone phonenr with
+            | ValueNone ->
+                return None, ServiceCall.refusedNumber phonenr
+            | ValueSome phone ->
             let ssnnr = ssn |> Option.map(fun s -> s.Replace(" ", "").Replace("-", "").Replace("(","").Replace(")","").Replace("+",""))
-            let req = ProveIdentityRequest.Root(Guid.NewGuid().ToString(), phone, (Some (dateOfBirth.ToString "yyyy-MM-dd")), ssnnr).JsonValue |> Serializer.Serialize
-            match! ServiceCall.makePostRequestWithHeaders ServiceCall.PostRequestTypes.ApplicationJson (license.Environment.AsLegacyApiUrl() + "/identity/v2") req ["Authorization", "Bearer " + auth; "Consent-Status", "optedIn"] with
+            let req = ProveIdentityRequest.Root(Guid.NewGuid().ToString(), phone, (Some (ServiceCall.isoDate dateOfBirth)), ssnnr).JsonValue |> Serializer.Serialize
+            let readStatus (body: string) = (loadResponseFromString body).Status |> ignore
+            match! ServiceCall.makePostRequestWithHeaders (ServiceCall.checkAnswer readStatus) ServiceCall.PostRequestTypes.ApplicationJson (license.Environment.AsLegacyApiUrl() + "/identity/v2") req ["Authorization", "Bearer " + auth; "Consent-Status", consent.AsHeaderValue()] with
             | fullResponse, None ->
-                let parsedResp =
-                    try
-                        let resp = loadResponseFromString fullResponse
-                        let timestamped = ServiceCall.addTimeStamp fullResponse
-                        if resp.Status <> 0 && (resp.Status < 1000 || resp.Status >= 2000) then
-                            None, timestamped
-                        else
-                            Some resp, timestamped
-                    with
-                    | e ->
-                        None, (e.ToString())
-                return parsedResp
+                let resp = loadResponseFromString fullResponse
+                let timestamped = ServiceCall.addTimeStamp fullResponse
+                if resp.Status <> 0 && (resp.Status < 1000 || resp.Status >= 2000) then
+                    return None, timestamped
+                else
+                    return Some resp, timestamped
             | err, Some r ->
                 return None, err
         }

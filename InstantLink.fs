@@ -11,6 +11,8 @@ module GetAuthUrl =
     /// As the starting point for Instant Link, the /getAuthUrl endpoint provides an authentication URL
     /// (appended with the first, unique verification fingerprint) that can be sent via SMS to initiate
     /// the middle authentication step.
+    /// Printing one (%A, ToString) hides both client ids, which are Prove-issued private keys, and the mobile number.
+    [<StructuredFormatDisplay("{Display}")>]
     type Request =
         { /// Unique identifier associated with this request. This identifier must be unique for each transaction.
           RequestId: Guid
@@ -38,7 +40,13 @@ module GetAuthUrl =
           
           /// A unique identifier for our customer's subscribers for Identity Manager.
           SubscriptionCustomerId: string option }
-        
+
+        /// Stays off the wire: the request is serialized as JSON.
+        [<Newtonsoft.Json.JsonIgnore>]
+        member this.Display = $"{{ RequestId = {this.RequestId}; SessionId = {this.SessionId}; ApiClientId, SubClientId and MobileNumber hidden }}"
+
+        override this.ToString() = this.Display
+
     type Response =
         { /// Fortified URL to be sent via SMS to the mobile device to be clicked on by the device to be authenticated.
           /// The max length returned is 2048 bytes.
@@ -55,6 +63,8 @@ module InstantLinkResult =
     /// unique verification fingerprint returned by the mobile device, and identifies whether
     /// Instant Link was completed with or without carrier authentication, whether
     /// the link was clicked within the expiration time, and whether the input device was where the link was clicked.
+    /// Printing one (%A, ToString) hides both client ids, which are Prove-issued private keys.
+    [<StructuredFormatDisplay("{Display}")>]
     type Request =
         { /// Unique identifier associated with this request. This identifier must be unique for each transaction.
           RequestId: Guid
@@ -71,7 +81,13 @@ module InstantLinkResult =
           
           /// The VFP value returned by the mobile device after authentication.
           VerificationFingerprint: string }
-        
+
+        /// Stays off the wire: the request is serialized as JSON.
+        [<Newtonsoft.Json.JsonIgnore>]
+        member this.Display = $"{{ RequestId = {this.RequestId}; SessionId = {this.SessionId}; ApiClientId, SubClientId and VerificationFingerprint hidden }}"
+
+        override this.ToString() = this.Display
+
     type Response =
         { /// Unique transaction identifier used to identify the results of the request.
           TransactionId: string
@@ -117,10 +133,15 @@ module InstantLinkResult =
 module InstantLink =
     open GetAuthUrl
 
+    /// Printing one (%A, ToString) hides both client ids, which are Prove-issued private keys.
+    [<StructuredFormatDisplay("{Display}")>]
     type License =
         { Environment: ProveEnvironment
           ApiClientId: string
           SubClientId: string option }
+
+        member this.Display = $"{{ Environment = {this.Environment}; ApiClientId and SubClientId hidden }}"
+        override this.ToString() = this.Display
 
     type InstantLinkError =
         | UnknownError of string
@@ -143,6 +164,11 @@ module InstantLink =
 
     let generate (license: License) (redirectUrl: string) (ipAddress: string option) (phoneNumber: string) (sessionId: string) =
         async {
+            match ServiceCall.tryAsTyped phoneNumber with
+            | ValueNone ->
+                return Error (UnknownError (ServiceCall.refusedNumber phoneNumber))
+            | ValueSome number ->
+
             let requestId = Guid.NewGuid()
             let redirectUrl = $"{redirectUrl}?sessionId={sessionId}"
 
@@ -153,7 +179,7 @@ module InstantLink =
                   SubClientId = license.SubClientId
                   SourceIp = ipAddress
                   FinalTargetUrl = redirectUrl
-                  MobileNumber = phoneNumber
+                  MobileNumber = number
                   SubscriptionCustomerId = None }
 
 

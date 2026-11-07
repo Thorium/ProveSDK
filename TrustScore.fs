@@ -62,26 +62,32 @@ module TrustScore =
 
 ]""", SampleIsList=true>
 
-    /// Calls TrustScore. Returns a score, the number from 0-1000, and full response as string (also with possible error)
-    let callProveTrustScore license (phonenr:string) =
-        async {
-            let! auth, err = ServiceCall.proveAuth license
-            if err <> "" then
-                return ValueNone, err
-            else
+    let private loadResponse (body: string) = ProveTrustscoreResponse.Load (Serializer.Deserialize body)
 
-            let isOk, phone = phonenr.Replace(" ", "").Replace("-", "").Replace("+", "").Replace("(", "").Replace(")", "") |> Int64.TryParse
-            if not isOk then
-                return (ValueSome 0), $"phoneNumber {phonenr} was not in correct format"
-            else
+    /// Calls TrustScore. Returns a score, the number from 0-1000, and full response as string (also with possible error).
+    /// The score is ValueNone if the number was refused here or the call failed.
+    let callProveTrustScore license (consent: ConsentStatus) (phonenr:string) =
+        async {
+            match! ServiceCall.proveAuth license with
+            | Error err ->
+                return ValueNone, err
+            | Ok auth ->
+
+            match ServiceCall.tryParsePhone phonenr with
+            | ValueNone ->
+                return ValueNone, ServiceCall.refusedNumber phonenr
+            | ValueSome phone ->
             let req = ProveTrustscoreRequest.Root(Guid.NewGuid().ToString(), (Some phone), None, false, None).JsonValue |> Serializer.Serialize
-            match! ServiceCall.makePostRequestWithHeaders ServiceCall.PostRequestTypes.ApplicationJson (license.Environment.AsLegacyApiUrl() + "/trust/v2") req ["Authorization", "Bearer " + auth; "Consent-Status", "optedIn"] with
+            let readScore (body: string) = (loadResponse body).Response |> Option.iter (fun response -> response.TrustScore |> ignore)
+            match! ServiceCall.makePostRequestWithHeaders (ServiceCall.checkAnswer readScore) ServiceCall.PostRequestTypes.ApplicationJson (license.Environment.AsLegacyApiUrl() + "/trust/v2") req ["Authorization", "Bearer " + auth; "Consent-Status", consent.AsHeaderValue()] with
             | fullResponse, None ->
-                let parsedResp = ProveTrustscoreResponse.Load (Serializer.Deserialize fullResponse)
+                let parsedResp = loadResponse fullResponse
                 let timestamped = ServiceCall.addTimeStamp fullResponse
                 match parsedResp.Response with
                 | Some response -> return ValueSome response.TrustScore, timestamped
                 | None -> return ValueNone, timestamped
+            | err, Some(:? ServiceCall.UnreadableAnswer) ->
+                return ValueNone, err
             | err, Some r ->
                 if err.ToString().Contains "phoneNumber invalid" then
                     return (ValueSome 0), err
