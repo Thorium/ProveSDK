@@ -200,9 +200,7 @@ let ``an unreadable error from Prove becomes an error naming the status`` (body:
     | Error(InstantLink.UnknownError message) -> Assert.Contains("502", message)
     | other -> failwith $"Unexpected: {other}"
 
-[<Theory>]
-[<InlineData("<html><body>Bad Gateway</body></html>")>]
-[<InlineData("")>]
+[<Theory; InlineData("<html><body>Bad Gateway</body></html>"); InlineData("")>]
 let ``an unreadable error on SMS delivery becomes an error naming the status`` (body: string) =
     let result, _ = answering HttpStatusCode.BadGateway body (Sms.send smsLicense "+447700900123" "Hello")
     match result with
@@ -230,18 +228,18 @@ let ``a redirect is still reported and not followed`` () =
 
 [<Fact>]
 let ``printing a service license hides the password`` () =
-    let printed = [ sprintf "%A" serviceLicense; string serviceLicense; $"{serviceLicense}"; sprintf "%O" serviceLicense ]
+    let printed = [ $"%A{serviceLicense}"; string serviceLicense; $"{serviceLicense}"; $"%O{serviceLicense}" ]
     printed |> List.iter (fun text -> Assert.DoesNotContain("the-password", text))
     printed |> List.iter (fun text -> Assert.Contains("user", text))
 
 [<Fact>]
 let ``printing an SMS license hides the key`` () =
-    [ sprintf "%A" smsLicense; string smsLicense; $"{smsLicense}" ]
+    [ $"%A{smsLicense}"; string smsLicense; $"{smsLicense}" ]
     |> List.iter (fun text -> Assert.DoesNotContain("the-license-key", text))
 
 [<Fact>]
 let ``printing an InstantLink license hides the private client keys`` () =
-    [ sprintf "%A" linkLicense; string linkLicense; $"{linkLicense}" ]
+    [ $"%A{linkLicense}"; string linkLicense; $"{linkLicense}" ]
     |> List.iter (fun text ->
         Assert.DoesNotContain("the-api-client", text)
         Assert.DoesNotContain("the-sub-client", text))
@@ -469,15 +467,15 @@ let private linkResultRequest : InstantLinkResult.Request =
 
 [<Fact>]
 let ``printing an SMS request hides the key`` () =
-    [ sprintf "%A" smsRequest; string smsRequest; $"{smsRequest}" ]
+    [ $"%A{smsRequest}"; string smsRequest; $"{smsRequest}" ]
     |> List.iter (fun text -> Assert.DoesNotContain("the-license-key", text))
 
 [<Fact>]
 let ``printing InstantLink requests hides the private client keys`` () =
-    [ sprintf "%A" authUrlRequest
+    [ $"%A{authUrlRequest}"
       string authUrlRequest
       $"{authUrlRequest}"
-      sprintf "%A" linkResultRequest
+      $"%A{linkResultRequest}"
       string linkResultRequest
       $"{linkResultRequest}" ]
     |> List.iter (fun text ->
@@ -615,7 +613,7 @@ let private dataCalls: (string * Async<ValueOption<string>>) list =
       "trust score",
       async {
           let! score, message = trust "12001001686"
-          return if score = ValueNone then ValueSome message else ValueNone
+          return if score |> ValueOption.isNone then ValueSome message else ValueNone
       }
       "generate",
       failed (async {
@@ -781,9 +779,7 @@ let ``a trust score that can't be read fails`` (body: string) =
     Assert.Equal(ValueNone, score)
     Assert.Contains("200", message)
 
-[<Theory>]
-[<InlineData("{}")>]
-[<InlineData("""{"status":"unknown"}""")>]
+[<Theory; InlineData("{}"); InlineData("""{"status":"unknown"}""")>]
 let ``prefill fails on a status it can't read`` (body: string) =
     let (parsed, message), _ = answering HttpStatusCode.OK body (prefill "12001001686")
     Assert.True(Option.isNone parsed)
@@ -803,9 +799,7 @@ let ``a success status without a response is a failure on InstantLink`` () =
         Assert.Contains("200", second)
     | other -> failwith $"Unexpected: {other}"
 
-[<Theory>]
-[<InlineData("")>]
-[<InlineData(""","status":null""")>]
+[<Theory; InlineData(""); InlineData(""","status":null""")>]
 let ``an InstantLink answer without a status fails instead of reading as a match`` (status: string) =
     let respond sent =
         let requestId = field "requestId" sent |> ValueOption.get

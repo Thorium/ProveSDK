@@ -212,8 +212,7 @@ module Identity =
                     .JsonValue
                 |> Serializer.Serialize
             let readVerified (body: string) = (loadResponseFromString body).Response |> Option.iter (fun response -> response.Verified |> ignore)
-            let! res = ServiceCall.makePostRequestWithHeaders (ServiceCall.checkAnswer readVerified) ServiceCall.PostRequestTypes.ApplicationJson (license.Environment.AsLegacyApiUrl() + "/identity/verify/v2") req ["Authorization", "Bearer " + auth; "Consent-Status", consent.AsHeaderValue()]
-            match res with
+            match! ServiceCall.makePostRequestWithHeaders (ServiceCall.checkAnswer readVerified) ServiceCall.PostRequestTypes.ApplicationJson (license.Environment.AsLegacyApiUrl() + "/identity/verify/v2") req ["Authorization", "Bearer " + auth; "Consent-Status", consent.AsHeaderValue()] with
             | fullResponse, None ->
                 let parsedResp = loadResponseFromString fullResponse : ProveVerifyResponseRoot
                 let timestamped = ServiceCall.addTimeStamp fullResponse

@@ -8,6 +8,7 @@ open Newtonsoft.Json.Serialization
 open System.Net.Http
 open Microsoft.FSharp.Reflection
 open Newtonsoft.Json
+open Newtonsoft.Json.Linq
 open FSharp.Data.JsonProvider
 
 type OptionConverter() =
@@ -187,19 +188,19 @@ module internal Request =
             $"a body of {body.Length} characters opening like {kind}"
 
     /// A code as Prove words one: at most five digits, or a word with at most five digits after it. Anything longer can be a person's number.
-    let private readCode (token: Newtonsoft.Json.Linq.JToken) =
+    let private readCode (token: JToken) =
         match token.Type with
         | Newtonsoft.Json.Linq.JTokenType.Integer
         | Newtonsoft.Json.Linq.JTokenType.String when System.Text.RegularExpressions.Regex.IsMatch(token.ToString(), @"^[A-Za-z_\-]{0,32}\d{0,5}$") ->
             ValueSome(token.ToString())
         | _ -> ValueNone
 
-    let private readWords (token: Newtonsoft.Json.Linq.JToken) =
-        if token.Type = Newtonsoft.Json.Linq.JTokenType.String then ValueSome(maskText (token.ToString())) else ValueNone
+    let private readWords (token: JToken) =
+        if token.Type = JTokenType.String then ValueSome(maskText (token.ToString())) else ValueNone
 
     /// The only parts of an error body that reach failure text, and only from a body that is a JSON object.
     let private errorFields (body: string) =
-        let readFields (root: Newtonsoft.Json.Linq.JObject) read names =
+        let readFields (root: JObject) read names =
             names
             |> List.choose (fun (name: string) ->
                 match root.GetValue(name, StringComparison.OrdinalIgnoreCase) with
@@ -210,7 +211,7 @@ module internal Request =
                     | _ -> None)
 
         try
-            let root = Newtonsoft.Json.Linq.JObject.Parse body
+            let root = JObject.Parse body
 
             readFields root readCode [ "status"; "code"; "failureCode"; "responseCode"; "error" ]
             @ readFields root readWords [ "description"; "message"; "additionalInfo"; "error_description" ]
@@ -331,15 +332,15 @@ module internal ServiceCall =
     /// Throws unless the body is what every data call needs: a JSON object with a "status" or a "response", whose "response", if it
     /// has one, is an object. read then throws on whatever else the call needs of it.
     let checkAnswer (read: string -> unit) (body: string) =
-        let root = Newtonsoft.Json.Linq.JObject.Parse body
-        let holds (name: string) = not (isNull root[name]) && root[name].Type <> Newtonsoft.Json.Linq.JTokenType.Null
+        let root = JObject.Parse body
+        let holds (name: string) = not (isNull root[name]) && root[name].Type <> JTokenType.Null
 
         if not (holds "status" || holds "response") then
             invalidOp "Neither a status nor a response."
 
         match root["response"] with
         | null -> ()
-        | response when response.Type = Newtonsoft.Json.Linq.JTokenType.Object || response.Type = Newtonsoft.Json.Linq.JTokenType.Null -> ()
+        | response when response.Type = JTokenType.Object || response.Type = JTokenType.Null -> ()
         | _ -> invalidOp "The response isn't an object."
 
         read body
@@ -496,9 +497,9 @@ module internal ServiceCall =
 
     let addTimeStamp str =
         try
-            let jsonObj = Newtonsoft.Json.Linq.JObject.Parse str
+            let jsonObj = JObject.Parse str
             if not <| jsonObj.ContainsKey "timestamp" then
-                jsonObj.["timestamp"] <- Newtonsoft.Json.Linq.JValue(DateTime.UtcNow.ToString("yyyy-MM-ddTHH:mm:ss.fff", CultureInfo.InvariantCulture))
+                jsonObj.["timestamp"] <- JValue(DateTime.UtcNow.ToString("yyyy-MM-ddTHH:mm:ss.fff", CultureInfo.InvariantCulture))
             jsonObj.ToString Formatting.None
         with
         | _ -> str
